@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoMix - Smart Music Player</title>
+    <meta name="description" content="A browser-based music player with intelligent AI-style mixing features">
+    <meta name="theme-color" content="#4ecdc4">
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Audio Analysis Libraries -->
+    <script src="https://unpkg.com/meyda@5.3.0/dist/web/meyda.min.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js@7.7.15/dist/wavesurfer.min.js"></script>
+    <link rel="manifest" href="manifest.json" id="manifestLink">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iMTIiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik0yNCA4QzE1LjE2IDggOCAxNS4xNiA4IDI0UzE1LjE2IDQwIDI0IDQwUzQwIDMyLjg0IDQwIDI0UzMyLjg0IDggMjQgOFpNMzQgMjZIMjZWMzRIMjJWMjZIMTRWMjJIMjJWMTRIMjZWMjJIMzRWMjZaIiBmaWxsPSJ3aGl0ZSIvPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJncmFkaWVudDBfbGluZWFyXzFfMSIgeDE9IjAiIHkxPSIwIiB4Mj0iNDgiIHkyPSI0OCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjNEVDREM0Ii8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI0ZGNkI2QiIvPgo8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+Cjwvc3ZnPgo=">
+    <script>
+        // Disable manifest for file:// protocol to prevent CORS errors
+        if (location.protocol === 'file:') {
+            const manifestLink = document.getElementById('manifestLink');
+            if (manifestLink) {
+                manifestLink.remove();
+                console.log('Manifest disabled for file:// protocol. Use http://localhost for full PWA features.');
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar: Playlist + Upload Zone -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="app-title">AutoMix</h1>
+                <p class="app-subtitle">Smart Music Player</p>
+            </div>
+            
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-content">
+                    <div class="upload-icon">🎵</div>
+                    <p class="upload-text">Drop audio files here</p>
+                    <p class="upload-subtext">or click to browse</p>
+                    <button class="browse-btn" id="browseBtn" type="button">Browse Files</button>
+                    <input type="file" id="fileInput" multiple accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" hidden>
+                </div>
+            </div>
+            
+            <div class="playlist-section">
+                <div class="playlist-header">
+                    <h3>Playlist</h3>
+                    <div class="playlist-actions">
+                        <button class="features-btn" id="featuresBtn" title="View Features">✨</button>
+                        <span class="track-count" id="trackCount">0 tracks</span>
+                    </div>
+                </div>
+                <div class="playlist" id="playlist">
+                    <!-- Playlist items will be dynamically added here -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div class="track-display">
+                <div class="track-artwork" id="trackArtwork">
+                    <div class="artwork-placeholder">🎶</div>
+                </div>
+                <div class="track-info">
+                    <h2 class="track-title" id="trackTitle">No track selected</h2>
+                    <p class="track-artist" id="trackArtist">Select a track to start playing</p>
+                    <div class="track-details">
+                        <span class="track-duration" id="trackDuration">--:--</span>
+                        <span class="track-bpm" id="trackBPM">-- BPM</span>
+                        <span class="track-key" id="trackKey">-- Key</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="waveform-container">
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                    <div class="progress-handle" id="progressHandle"></div>
+                </div>
+                <div class="time-display">
+                    <span class="current-time" id="currentTime">0:00</span>
+                    <span class="total-time" id="totalTime">0:00</span>
+                </div>
+            </div>
+
+            <div class="mix-controls">
+                <div class="crossfade-control">
+                    <label for="crossfadeDuration">Crossfade Duration</label>
+                    <input type="range" id="crossfadeDuration" min="3" max="12" value="6" step="1">
+                    <span id="crossfadeValue">6s</span>
+                </div>
+                <div class="mix-mode-control">
+                    <label for="mixMode">Mix Mode</label>
+                    <select id="mixMode">
+                        <option value="chill">Chill</option>
+                        <option value="club">Club</option>
+                        <option value="random">Random</option>
+                    </select>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Player Bar -->
+    <footer class="player-bar">
+        <div class="player-controls">
+            <button class="control-btn" id="prevBtn">⏮</button>
+            <button class="control-btn play-pause" id="playPauseBtn">▶</button>
+            <button class="control-btn" id="nextBtn">⏭</button>
+        </div>
+        
+        <div class="player-info">
+            <span class="current-track-name" id="currentTrackName">No track playing</span>
+        </div>
+        
+        <div class="player-actions">
+            <div class="volume-control">
+                <button class="control-btn" id="volumeBtn">🔊</button>
+                <input type="range" id="volumeSlider" min="0" max="100" value="70">
+            </div>
+            <button class="automix-btn" id="automixBtn">
+                <span class="automix-icon">🎛</span>
+                <span class="automix-text">AutoMix</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- MagicBento Section (Hidden by default) -->
+    <div class="magic-bento-overlay" id="magicBentoOverlay">
+        <div class="magic-bento-header">
+            <h2>AutoMix Features</h2>
+            <button class="close-bento-btn" id="closeBentoBtn">×</button>
+        </div>
+        <div class="magic-bento-container" id="magicBentoContainer">
+            <!-- MagicBento will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="js/animatedList.js"></script>
+    <script src="js/tiltedCard.js"></script>
+    <script src="js/magicBento.js"></script>
+    <script src="js/analyzer.js"></script>
+    <script src="js/playlistManager.js"></script>
+    <script src="js/automixEngine.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
